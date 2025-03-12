@@ -4,6 +4,7 @@
 from langflow.base.vectorstores.model import LCVectorStoreComponent, check_cached_vector_store
 from langflow.inputs import StrInput, SecretStrInput, MultilineInput, IntInput
 from langflow.schema import Data
+from langchain_community.graphs.neo4j_graph import Neo4jGraph
 
 # Dummy implementation for converting Neo4j nodes to LangFlow Data objects.
 # Replace this with your actual conversion logic as needed.
@@ -57,27 +58,19 @@ class Neo4jVectorStoreComponent(LCVectorStoreComponent):
 
     @check_cached_vector_store
     def build_vector_store(self):
-        try:
-            from neo4j import GraphDatabase
-        except ImportError:
-            raise ImportError("Could not import neo4j package. Please install it with `pip install neo4j`.")
-        driver = GraphDatabase.driver(self.uri, auth=(self.username, self.password))
-        return driver
+        return Neo4jGraph(
+            url=self.uri,
+            username=self.username,
+            password=self.password,
+            database=self.database_name,
+        )
 
     def search_documents(self) -> list[Data]:
-        driver = self.build_vector_store()
+        graph = self.build_vector_store()
         if self.search_input and isinstance(self.search_input, str) and self.search_input.strip():
             try:
-                with driver.session() as session:
-                    result = session.run(self.search_input)
-                    docs = []
-                    for record in result:
-                        keys = list(record.keys())
-                        # Prefer the key 'n' if it exists; otherwise, use the first key.
-                        if "n" in keys:
-                            docs.append(record["n"])
-                        elif keys:
-                            docs.append(record[keys[0]])
+                result = graph.query(self.search_input)
+                docs = [record for record in result]
             except Exception as e:
                 raise ValueError(f"Error performing search in Neo4j: {str(e)}") from e
 
@@ -86,4 +79,5 @@ class Neo4jVectorStoreComponent(LCVectorStoreComponent):
             return data
         else:
             return []
+
 ```
