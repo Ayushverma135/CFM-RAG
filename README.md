@@ -1,5 +1,12 @@
 # RAG
 
+# Wait 60 seconds before connecting using these details, or login to https://console.neo4j.io to validate the Aura Instance is available
+NEO4J_URI=neo4j+s://dd99637a.databases.neo4j.io
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=NGQCYgUrapBcKVzpgv3gfK33DweH9lvEFOv95p-wECY
+AURA_INSTANCEID=dd99637a
+AURA_INSTANCENAME=Instance01
+
 ```
 from langflow.base.vectorstores.model import LCVectorStoreComponent, check_cached_vector_store
 from langflow.inputs import StrInput, SecretStrInput, MultilineInput, IntInput
