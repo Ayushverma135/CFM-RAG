@@ -31,8 +31,21 @@
 
 * Send the prompt to an LLM (e.g., **Groq**, **GPT-4**, **Claude**) to generate a final answer.
 
----
 
-> ✅ **Result**: The LLM provides an answer grounded in both **spoken**, **visual**, and **textual** content from the video.
 
+
+| Pipeline             | Core Innovation                           | Pros                               | Trade-offs                     |
+| -------------------- | ----------------------------------------- | ---------------------------------- | ------------------------------ |
+| **Video‑RAG**        | Fixed-time chunking + multimodal fine DAC | Simple to build, solid baseline    | Less flexible over formats     |
+| **iRAG**             | Incremental/query-time ingestion          | Fast indexing, efficient use       | Query-time cost non-zero       |
+| **SceneRAG**         | Narrative scene segmentation & graph      | Rich context continuity            | Scene detection needed         |
+| **Omni‑AdaVideoRAG** | Adaptive retrieval scale per query        | Efficient & accurate for all cases | Needs intent classifier        |
+| **VisRAG**           | Direct image-embedding without parsing    | Better visual grounding            | Lacks detailed text extraction |
+
+
+| Pipeline             | Accuracy | Speed / Efficiency                         | Best For                                  |
+| -------------------- | -------- | ------------------------------------------ | ----------------------------------------- |
+| **SceneRAG**         | Highest  | Moderate to slow                           | Complex, long videos; multi-hop reasoning |
+| **Omni-AdaVideoRAG** | High     | Efficient                                  | Versatile queries with varying complexity |
+| **iRAG**             | Good     | Very fast ingestion, query-time extraction | Large-scale corpora, fast query needs     |
 
