@@ -49,3 +49,11 @@
 | **Omni-AdaVideoRAG** | High     | Efficient                                  | Versatile queries with varying complexity |
 | **iRAG**             | Good     | Very fast ingestion, query-time extraction | Large-scale corpora, fast query needs     |
 
+| **Pipeline**             | **Segmentation Approach**                        | **Retrieval Method**                       | **Core Innovation**                                                                    | **Code Availability**                |
+| ------------------------ | ------------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------------------------------- | ------------------------------------ |
+| **Video-RAG** (Leon1207) | Fixed-interval frames + ASR/OCR/object detection | Vector-based multimodal retrieval          | Lightweight, plug‑and‑play RAG for LVLMs using visually‑aligned text ([github.com][1]) | ✅ GitHub: Leon1207/Video‑RAG‑master  |
+| **VideoRAG** (HKUDS)     | Fixed 30-sec clips + ImageBind + graph encoding  | Dual-channel: graph + visual embeddings    | Graph‑driven knowledge grounding + long‑video multimodal encoding                      | ✅ GitHub: HKUDS/VideoRAG             |
+| **SceneRAG**             | Narrative-driven scene segmentation with LLM     | Scene-aware retrieval via knowledge graphs | Builds coherent scene graphs for multi-hop, long-range reasoning                       | ❌ No public code yet                 |
+| **iRAG**                 | Minimal upfront indexing + deep query-time parse | Hybrid KNN over metadata + deep processing | On-demand extraction for fast indexing at scale                                        | ❌ No public code yet                 |
+| **Omni‑AdaVideoRAG**     | Adaptive granularity (coarse/fine windows)       | Hierarchical text, visual, graph indices   | Query-guided scale adaptation with intent classification                               | ❌ No public code yet                 |
+
