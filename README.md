@@ -1,38 +1,90 @@
 ### 🔁 **Video-RAG Pipeline (Step-by-Step)**
 
-#### 1. **Preprocessing**
+#### 1. **Initialization**
 
-* **Frame Extraction**: Sample frames every few seconds from the video.
-* **Audio Transcription (ASR)**: Use models like Whisper to transcribe speech to text.
-* **OCR (Optional)**: Extract on-screen text using Tesseract.
-* **Image Captioning**: Generate visual descriptions using BLIP-2 or similar.
+   * `Config` ensures directories and device are set up.
+   * `VideoRAGPipeline` instantiates all sub‑components:
 
-#### 2. **Multimodal Chunking**
+     * `Transcriber` (ASR)
+     * `SceneExtractor` (scene‑change frame sampling)
+     * `FrameProcessor` (OCR, captions, detections, visual tags)
+     * `Indexer` (embedding & HNSW index building)
+     * `Retriever` (querying + LLM)
 
-* Convert extracted elements (ASR, OCR, captions) into textual "chunks" with timestamps.
+#### 2. **Run Pipeline** (`pipeline.run(query)`)
 
-#### 3. **Embedding & Indexing**
+   1. **Frame Extraction**
 
-* Convert chunks into vector embeddings using:
+      * `SceneExtractor.extract(video_path)`
+      * Outputs: list of representative `frames` and their `times`.
+   2. **Audio Transcription**
 
-  * **Sentence Transformers** (for text)
-  * **CLIP/OpenCLIP** (for frames)
-* Store embeddings in a **vector store** (e.g., FAISS).
+      * `Transcriber.transcribe(video_path)`
+      * Outputs: full spoken text (`asr_text`) with caching.
+   3. **Frame Processing**
 
-#### 4. **Query & Retrieval**
+      * `FrameProcessor.process(frames)`
+      * For each frame:
 
-* User inputs a question → embed it → retrieve top-K relevant chunks from the vector DB.
+        * **OCR** → extracts any visible text.
+        * **Dense Captioning** (BLIP‑2 ViT‑G) → “Describe this image in detail.”
+        * **Object Detection** (YOLOv8) → list of `(label, score)`.
+        * **Visual Tags** (GroundingDINO + Tag2Text) → rich phrases per detected region.
+      * Outputs: `ocr_texts`, `captions`, `detections`, `vis_tags`.
+   4. **Index Building**
 
-#### 5. **Prompt Construction**
+      * `Indexer.build(asr_text, ocr_texts, captions, vis_tags, frames)`
+      * **Text embeddings** (Sentence‑Transformer) → HNSW index
+      * **Image embeddings** (CLIP ViT-H) → HNSW index
+      * Outputs: flat list `texts`, `text_index`, `img_index`.
+   5. **Retriever Setup**
 
-* Combine retrieved chunks into a structured prompt with temporal/visual context.
+      * Instantiate `Retriever(texts, text_index, img_index, captions, detections, times)`.
+   6. **Query & Generate**
 
-#### 6. **Answer Generation**
+      * `Retriever.query(query)`
+      * Embed the user query → retrieve top text & image hits.
+      * Build a combined prompt:
 
-* Send the prompt to an LLM (e.g., **Groq**, **GPT-4**, **Claude**) to generate a final answer.
+        ```
+        [Text] …  
+        [Vis t.s] dense caption  
+        [Det t.s] object1(score), object2(score)  
+        Q: <your query>  
+        A:
+        ```
+      * Send to LLM (Groq API) → stream back `answer`.
 
+#### 3. **Output**
 
+   * Returns the full prompt + the LLM’s answer.
 
+---
+
+### Visual Flow (ASCII)
+
+```
+[ Video File ]  
+      ↓  
+[ SceneExtractor ] ──> frames, times  
+      ↓  
+[ Transcriber ] ──> asr_text  
+      ↓  
+[ FrameProcessor ] ───────────────────────────────────────────────┐
+      ↓                                                           │
+[ ocr_texts, captions, detections, vis_tags ]                     │
+      ↓                                                           │
+[ Indexer ] ──> text_index, img_index                             │
+      ↓                                                           │
+[ Retriever ] ──> embed(query) ──> retrieve top-K (text+images)   │
+      ↓                                                           │
+[ Build Prompt ] ──> “[Text]… [Vis]… [Det]… Q: <query> A:”        │
+      ↓                                                           │
+[ Groq LLM API ] ──> answer                                       │
+      ↓                                                           │
+[ Return prompt + answer ] <──────────────────────────────────────┘
+```
+- - - - 
 
 | Pipeline             | Core Innovation                           | Pros                               | Trade-offs                     |
 | -------------------- | ----------------------------------------- | ---------------------------------- | ------------------------------ |
@@ -42,12 +94,15 @@
 | **Omni‑AdaVideoRAG** | Adaptive retrieval scale per query        | Efficient & accurate for all cases | Needs intent classifier        |
 | **VisRAG**           | Direct image-embedding without parsing    | Better visual grounding            | Lacks detailed text extraction |
 
+- - - - 
 
 | Pipeline             | Accuracy | Speed / Efficiency                         | Best For                                  |
 | -------------------- | -------- | ------------------------------------------ | ----------------------------------------- |
 | **SceneRAG**         | Highest  | Moderate to slow                           | Complex, long videos; multi-hop reasoning |
 | **Omni-AdaVideoRAG** | High     | Efficient                                  | Versatile queries with varying complexity |
 | **iRAG**             | Good     | Very fast ingestion, query-time extraction | Large-scale corpora, fast query needs     |
+
+- - - - 
 
 | **Pipeline**             | **Segmentation Approach**                        | **Retrieval Method**                       | **Core Innovation**                                                                    | **Code Availability**                |
 | ------------------------ | ------------------------------------------------ | ------------------------------------------ | -------------------------------------------------------------------------------------- | ------------------------------------ |
