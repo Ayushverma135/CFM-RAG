@@ -1,4 +1,4 @@
-### 🔁 **Video-RAG Pipeline (Step-by-Step)**
+### 🔁 **Video-RAG Pipeline (Step-by-Step) - Approach 1**
 
 #### 1. **Initialization**
 
@@ -59,8 +59,6 @@
 
    * Returns the full prompt + the LLM’s answer.
 
----
-
 ### Visual Flow (ASCII)
 
 ```
@@ -84,6 +82,154 @@
       ↓                                                           │
 [ Return prompt + answer ] <──────────────────────────────────────┘
 ```
+
+- - - - 
+
+### 🔁 **Video-RAG Pipeline (Step-by-Step) - Approach 2 (multimodal reasoning)**
+
+#### 🛠 1. Offline Preprocessing (Build Your Video “Knowledge Base”)
+
+1. **Scene‑Change Detection & Frame Extraction**
+
+   * Run PySceneDetect on the raw video to find shot boundaries.
+   * For each shot, grab one representative frame (e.g. the first frame of the shot).
+   * Record its timestamp (in seconds or mm\:ss).
+
+2. **Audio Transcription (ASR)**
+
+   * Use Whisper to transcribe the entire video’s audio track into one text string.
+   * Cache the result by hashing the video path.
+
+3. **Frame‑Level Understanding**
+   For each extracted frame:
+   a. **OCR** (Tesseract or PaddleOCR) → any visible on‑screen text.
+   b. **Dense Captioning** (BLIP‑2 ViT‑G) → a paragraph‑style caption: “A red butterfly rests on a green leaf…”
+   c. **Object Detection** (YOLOv8) → list of `(label, confidence)` pairs.
+   d. **Visual Tags**
+
+   * Use GroundingDINO with the YOLO labels as prompts → bounding boxes for any named object.
+   * Crop each box and feed to Tag2Text → richer phrases: “shimmering wing pattern,” “sunlit veins.”
+
+4. **Embedding Extraction**
+
+   * **Text Embeddings**: run Sentence‑Transformer on
+
+     * the ASR text,
+     * all OCR snippets,
+     * all dense captions,
+     * all visual‑tag phrases.
+   * **Image Embeddings**: run CLIP (ViT‑H) on each frame.
+
+5. **Index Construction**
+
+   * Build two FAISS HNSW indexes (high‑recall k‑NN):
+
+     1. **Text Index** ← text embeddings
+     2. **Image Index** ← frame embeddings
+   * Optionally pre‑cluster with k‑means to speed up construction.
+
+6. **Caching**
+
+   * Save all intermediate outputs (ASR text, captions, embeddings, indexes) under a hash key so you never recompute on the same video.
+
+#### 🚀 2. Online Query & Answering
+
+1. **User Submits Query**
+
+   * Could be frame‑specific (“What color is the butterfly?”) or holistic (“Describe the sequence of events.”).
+
+2. **Frame Retrieval**
+
+   * Embed the query as both text (Sentence‑Transformer) and image (CLIP) vectors.
+   * Search top K candidates in both indexes (e.g. K=5 for text, K=3 for images).
+   * Merge/sort to select your final **set of K frames** most relevant to the query.
+
+3. **Multimodal Reasoning**
+   You have two modes, depending on your chosen model’s API:
+
+   **A. Batch‑Image Prompting**
+
+   ```python
+   # If model supports N images + text at once:
+   inputs = processor(images=[frame1,…,frameK],
+                      text=user_query,
+                      return_tensors="pt")
+   outputs = model.generate(**inputs, max_new_tokens=256)
+   answer  = processor.decode(outputs[0], skip_special_tokens=True)
+   ```
+
+   **B. Iterative Contextualization**
+
+   1. Ask about frame₁ + query → get A₁
+   2. Feed A₁ + frame₂ + same query → get A₂
+   3. …continue through frame\_K
+   4. Finally ask: “Combine A₁ … Aₖ into one coherent answer.”
+
+4. **Answer Delivery**
+
+   * The multimodal LLM returns a single text response, seamlessly integrating visual and temporal context.
+   * No more stitching together OCR, captions, or tags by hand.
+
+5. **Fallback (Optional)**
+
+   * If the multimodal LLM fails or the query is purely textual, revert to the original Groq/text‑RAG step on your indexed captions & tags.
+
+#### Visual Flow (ASCII)
+
+```text
+[ Video File ]
+      ↓
+1. Scene‑Change Detection
+   • PySceneDetect finds key shot boundaries
+   • Outputs: representative frames + timestamps
+
+      ↓
+2. Embedding & Retrieval
+   • CLIP / Sentence‑Transformer embed frames & text (ASR, OCR, captions, tags)
+   • Build HNSW indexes (FAISS) for fast k‑NN lookup
+
+      ↓
+3. Query Processing
+   User submits “query” (frame‑specific or holistic)
+
+      ↓
+4. Top‑K Frame Retrieval
+   • Embed query with CLIP / text encoder
+   • Search both text‑index & image‑index to select top K frames
+
+      ↓
+5. Multimodal Reasoning
+   ┌────────────────────────────────────────────────────────────┐
+   │ Option A: Batch‑Image Prompting                           │
+   │   • Processor packs K images + query into one input      │
+   │   • Multimodal LLM (e.g. LLaVA, MiniGPT‑4) generates      │
+   │     a single, cross‑frame answer                        │
+   └────────────────────────────────────────────────────────────┘
+   OR
+   ┌────────────────────────────────────────────────────────────┐
+   │ Option B: Iterative Contextualization                     │
+   │   • Ask LLM about frame₁ + query → get A₁                 │
+   │   • For each next frameᵢ: “Before you said A_{i–1}, now,   │
+   │     with frameᵢ, what happens next?” → Aᵢ                  │
+   │   • Finally: “Combine all into a coherent narrative.”     │
+   └────────────────────────────────────────────────────────────┘
+
+      ↓
+6. Final Answer
+   • Multimodal LLM returns a single, user‑friendly response
+   • No manual prompt‑stitching of OCR/captions/tags
+
+      ↓
+7. (Optional) Text‑RAG Fallback
+   • For purely textual queries or when multimodal fails
+   • Use existing Groq/text‑RAG on concatenated captions + tags + OCR
+
+      ↓
+▶ User sees a natural, accurate answer to any video query  
+```
+
+This detailed flow ensures **any question**, whether about a **single frame** or **the entire sequence**, is handled smoothly by your unified, multimodal Video RAG system.
+
 - - - - 
 
 | Pipeline             | Core Innovation                           | Pros                               | Trade-offs                     |
