@@ -200,18 +200,18 @@
       ↓
 5. Multimodal Reasoning
    ┌────────────────────────────────────────────────────────────┐
-   │ Option A: Batch‑Image Prompting                           │
-   │   • Processor packs K images + query into one input      │
-   │   • Multimodal LLM (e.g. LLaVA, MiniGPT‑4) generates      │
-   │     a single, cross‑frame answer                        │
+   │ Option A: Batch‑Image Prompting                            │
+   │   • Processor packs K images + query into one input        │
+   │   • Multimodal LLM (e.g. LLaVA, MiniGPT‑4) generates       │
+   │     a single, cross‑frame answer                           │
    └────────────────────────────────────────────────────────────┘
    OR
    ┌────────────────────────────────────────────────────────────┐
-   │ Option B: Iterative Contextualization                     │
-   │   • Ask LLM about frame₁ + query → get A₁                 │
+   │ Option B: Iterative Contextualization                      │
+   │   • Ask LLM about frame₁ + query → get A₁                  │
    │   • For each next frameᵢ: “Before you said A_{i–1}, now,   │
    │     with frameᵢ, what happens next?” → Aᵢ                  │
-   │   • Finally: “Combine all into a coherent narrative.”     │
+   │   • Finally: “Combine all into a coherent narrative.”      │
    └────────────────────────────────────────────────────────────┘
 
       ↓
