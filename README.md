@@ -227,8 +227,20 @@
       ↓
 ▶ User sees a natural, accurate answer to any video query  
 ```
-
 This detailed flow ensures **any question**, whether about a **single frame** or **the entire sequence**, is handled smoothly by your unified, multimodal Video RAG system.
+
+- - - - 
+
+| Criterion                     | Groq‑Based Text RAG (Approach 1)                                                                                                                                                           | Multimodal‑LLM Reasoning (Approach 2)                                                                                                                                                                                   |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Accuracy & Correctness**    | • Relies on quality of indexed text (captions, OCR, tags).<br>• High on queries well covered by metadata.<br>• May miss fine‑grained visual details or spatial relations.     | • Directly “sees” the pixels alongside the query.<br>• Better at spatial reasoning (e.g. “what’s left of X?”, “what changes between frames”).<br>• Correctness hinges on model’s vision–language alignment. |
+| **Cross‑Frame Coherence**     | • Must stitch together multiple text chunks manually;<br> prompt‑length limits risk dropping context.<br>• Good for narrative synthesis if ASR/captions fully capture events. | • Models like LLaVA-2 can batch multiple images + question.<br>• Naturally reasons over K frames in one go, avoiding prompt‑overflow.                                                                       |
+| **Efficiency & Latency**      | • Text retrieval + single Groq API call → low latency (tens to hundreds ms).<br>• Scales well to long videos (only prompt size grows).                                        | • Each multimodal inference costs GPU cycles (hundreds of ms–seconds per call).<br>• If batching K frames, latency grows with K and model size.                                                             |
+| **Scalability**               | • FAISS + Groq text calls are elastic (many queries at once).<br>• Minimal GPU required beyond index building.                                                                | • Requires GPU for every query.<br>• Throughput limited by model inference speed.                                                                                                                           |
+| **Implementation Complexity** | • You already have mature pipelines for ASR, OCR, BLIP‑2 captions, indexing.<br>• Single text‑to‑text API call at query time.                                                 | • Need to integrate and manage multimodal model weights, pre‑/post‑processing of images.<br>• Potential issues with batching, memory, and API support.                                                      |
+| **Cost**                      | • If using Groq API, incurs per‑token cost but no local GPU.                                                                                                                  | • Self‑hosted: only hardware costs; no per‑use billing.<br>• Cloud‑hosted: can leverage paid APIs (e.g. OpenAI GPT-4V).                                                                                     |
+| **Robustness to Noisy Data**  | • Garbage‑in (bad captions/tags) → garbage‑out.<br>• Mitigated by dense retrieval and fallback strategies.                                                                    | • Model can “look past” noisy metadata and correct visual misconceptions.                                                                                                                                   |
+
 
 - - - - 
 
