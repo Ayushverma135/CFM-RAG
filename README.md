@@ -85,7 +85,7 @@
 
 - - - - 
 
-### 🔁 **Video-RAG Pipeline (Step-by-Step) - Approach 2 (multimodal reasoning)**
+### 🔁 **Video-RAG Pipeline (Step-by-Step) - Approach 2 (multimodal reasoning for both frame-specific queries and cross-frame specific( narative/long form) queries)**
 
 #### 🛠 1. Offline Preprocessing (Build Your Video “Knowledge Base”)
 
