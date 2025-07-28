@@ -40,7 +40,7 @@ class Retriever:
         self.clip_model = self.clip_model.to(self.device).eval()
         self.tokenizer = open_clip.get_tokenizer("ViT-H-14")
 
-        self.client = Groq(api_key=os.getenv('GROQ_API_KEY', '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'))
+        self.client = Groq(api_key=os.getenv('GROQ_API_KEY', 'your_api_key'))
 
     def query(self, q):
         """
