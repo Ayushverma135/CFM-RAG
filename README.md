@@ -33,6 +33,9 @@ The entrypoint is `src/main.py`, which instantiates `VideoRAGPipeline` and runs 
 
 ## High-level flow
 
+<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/4c7dc859-727c-43b5-8774-329ed1213991" />
+
+
 1. **Scene extraction** (`SceneExtractor.extract`)
 
    * Uses PySceneDetect to detect cuts and Decord to load key frames.
